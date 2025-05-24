@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Note Editor</title>
+  <style>
+    body {
+      margin: 0;
+      background: #121212;
+      color: #eee;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    /* Title input box only */
+    input#titleInput {
+      font-size: 18px;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      width: 100%;
+      max-height: 40px;
+      background: #1f1f1f;
+      color: #eee;
+      margin-bottom: 15px;
+      box-sizing: border-box;
+      box-shadow: 0 0 8px #1e88e5;
+    }
+
+    /* Toolbar styling */
+    #toolbar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    button.format-btn {
+      background: #1f1f1f;
+      border: none;
+      color: #eee;
+      padding: 8px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 0 8px #1e88e5;
+      font-weight: bold;
+      font-size: 16px;
+      user-select: none;
+      transition: background 0.3s;
+    }
+
+    button.format-btn:hover {
+      background: #1565c0;
+    }
+
+    select#fontSizeSelect {
+      background: #1f1f1f;
+      border: none;
+      color: #eee;
+      padding: 8px 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 8px #1e88e5;
+      cursor: pointer;
+      font-size: 16px;
+      user-select: none;
+    }
+
+    /* Textarea fills the rest with no border or box */
+    textarea#contentInput {
+      flex-grow: 1;
+      resize: none;
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      padding: 0;
+      font-size: 16px;
+      line-height: 1.5;
+      color: #eee;
+      font-family: 'Segoe UI', sans-serif;
+      font-weight: normal;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      box-shadow: none;
+    }
+
+    #saveBtn {
+      margin-top: 15px;
+      padding: 12px 25px;
+      font-size: 18px;
+      background: #1e88e5;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(30,136,229,0.6);
+      transition: background 0.3s;
+      align-self: flex-end;
+    }
+
+    #saveBtn:hover {
+      background: #1565c0;
+    }
+  </style>
+</head>
+<body>
+  <input type="text" id="titleInput" placeholder="Note Title" />
+
+  <div id="toolbar">
+    <button type="button" class="format-btn" id="boldBtn"><b>B</b></button>
+    <button type="button" class="format-btn" id="italicBtn"><i>I</i></button>
+    <select id="fontSizeSelect" title="Font Size">
+      <option value="14px">14</option>
+      <option value="16px" selected>16</option>
+      <option value="18px">18</option>
+      <option value="20px">20</option>
+      <option value="22px">22</option>
+      <option value="24px">24</option>
+    </select>
+  </div>
+
+  <textarea id="contentInput" placeholder="Write your note here..."></textarea>
+  <button id="saveBtn">Save Note</button>
+
+  <script>
+    const titleInput = document.getElementById('titleInput');
+    const contentInput = document.getElementById('contentInput');
+    const saveBtn = document.getElementById('saveBtn');
+
+    const boldBtn = document.getElementById('boldBtn');
+    const italicBtn = document.getElementById('italicBtn');
+    const fontSizeSelect = document.getElementById('fontSizeSelect');
+
+    const params = new URLSearchParams(window.location.search);
+    const noteId = params.get('id');
+
+    function loadNote() {
+      if (!noteId) return;
+      const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+      const note = notes.find(n => n.id === noteId);
+      if (note) {
+        titleInput.value = note.title;
+        contentInput.value = note.text;
+        contentInput.style.fontWeight = note.isBold ? 'bold' : 'normal';
+        contentInput.style.fontStyle = note.isItalic ? 'italic' : 'normal';
+        contentInput.style.fontSize = note.fontSize || '16px';
+        fontSizeSelect.value = note.fontSize || '16px';
+      }
+    }
+
+    function toggleBold() {
+      if (contentInput.style.fontWeight === 'bold') {
+        contentInput.style.fontWeight = 'normal';
+      } else {
+        contentInput.style.fontWeight = 'bold';
+      }
+    }
+
+    function toggleItalic() {
+      if (contentInput.style.fontStyle === 'italic') {
+        contentInput.style.fontStyle = 'normal';
+      } else {
+        contentInput.style.fontStyle = 'italic';
+      }
+    }
+
+    boldBtn.addEventListener('click', toggleBold);
+    italicBtn.addEventListener('click', toggleItalic);
+
+    fontSizeSelect.addEventListener('change', () => {
+      contentInput.style.fontSize = fontSizeSelect.value;
+    });
+
+    function saveNote() {
+      const title = titleInput.value.trim() || "Untitled";
+      const text = contentInput.value.trim();
+
+      if (!text) {
+        alert("Note content cannot be empty!");
+        return;
+      }
+
+      let notes = JSON.parse(localStorage.getItem('notes') || '[]');
+
+      if (noteId) {
+        const index = notes.findIndex(n => n.id === noteId);
+        if (index > -1) {
+          notes[index].title = title;
+          notes[index].text = text;
+          notes[index].isBold = contentInput.style.fontWeight === 'bold';
+          notes[index].isItalic = contentInput.style.fontStyle === 'italic';
+          notes[index].fontSize = contentInput.style.fontSize || '16px';
+        }
+      } else {
+        const newNote = {
+          id: Date.now().toString(),
+          title,
+          text,
+          isBold: contentInput.style.fontWeight === 'bold',
+          isItalic: contentInput.style.fontStyle === 'italic',
+          fontSize: contentInput.style.fontSize || '16px',
+        };
+        notes.push(newNote);
+      }
+
+      localStorage.setItem('notes', JSON.stringify(notes));
+      alert('Note saved!');
+      window.location.href = 'index.html';
+    }
+
+    saveBtn.onclick = saveNote;
+    window.onload = loadNote;
+  </script>
+</body>
+</html>
